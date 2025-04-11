@@ -110,21 +110,6 @@ if uploaded_files:
         df["Rent. Mês Num"] = df["Rent. Mês"].str.replace("%", "").str.replace(",", ".").astype(float)
         df["%CDI Num"] = df["%CDI Ano"].str.replace("%", "").str.replace(",", ".").astype(float)
 
-        css_selectbox = """
-        <style>
-        div[data-baseweb="select"] > div {
-            border: 2px solid #09f !important;
-        }
-        div[data-baseweb="select"] span[title="Acima de 100%"] {
-            color: lime;
-        }
-        div[data-baseweb="select"] span[title="Abaixo de 100%"] {
-            color: tomato;
-        }
-        </style>
-        """
-        st.markdown(css_selectbox, unsafe_allow_html=True)
-
         opcao_filtro = st.selectbox("Filtrar por %CDI Ano:", ["Todos", "Acima de 100%", "Abaixo de 100%"])
         if opcao_filtro == "Acima de 100%":
             df = df[df["%CDI Num"] > 100]
@@ -164,6 +149,7 @@ if uploaded_files:
         )
 
         for idx, row in df_exibido.iterrows():
+            cor = "lime" if float(row['%CDI Ano'].replace('%','').replace(',','.')) > 100 else "tomato"
             st.markdown(
                 f"""
                 <div class='tabela-row'>
@@ -171,7 +157,7 @@ if uploaded_files:
                     <div>{row['Código']}</div>
                     <div>{row['Rent. Mês']}</div>
                     <div>{row['Rent. Ano']}</div>
-                    <div>{row['%CDI Ano']}</div>
+                    <div style='color:{cor}'>{row['%CDI Ano']}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
