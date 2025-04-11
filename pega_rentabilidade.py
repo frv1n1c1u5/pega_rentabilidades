@@ -115,14 +115,10 @@ if uploaded_files:
 
         st.markdown("### 📄 Visualizar Tabela")
 
-        header = ["Arquivo", "Código", "Rent. Mês", "Rent. Ano", "%CDI Ano", "Mais Info"]
-        st.write("| " + " | ".join(header) + " |")
-        st.write("|" + "---|" * len(header))
-
         for idx, row in df_exibido.iterrows():
             with st.container():
                 cols = st.columns([2, 2, 2, 2, 2, 1])
-                cols[0].markdown(row["Arquivo"])
+                cols[0].markdown(f"**{row['Arquivo']}**")
                 cols[1].markdown(row["Código"])
                 cols[2].markdown(row["Rent. Mês"])
                 cols[3].markdown(row["Rent. Ano"])
