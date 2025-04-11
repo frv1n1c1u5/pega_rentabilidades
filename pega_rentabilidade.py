@@ -116,6 +116,9 @@ if uploaded_files:
         st.markdown("### 📄 Visualizar Tabela")
 
         for idx, row in df_exibido.iterrows():
+            if f"show_comp_{idx}" not in st.session_state:
+                st.session_state[f"show_comp_{idx}"] = False
+
             with st.container():
                 cols = st.columns([2, 2, 2, 2, 2, 1])
                 cols[0].markdown(f"**{row['Arquivo']}**")
@@ -125,7 +128,7 @@ if uploaded_files:
                 cols[4].markdown(row["%CDI Ano"])
                 with cols[5]:
                     if st.button("ℹ️", key=f"info_{idx}"):
-                        st.session_state[f"show_comp_{idx}"] = not st.session_state.get(f"show_comp_{idx}", False)
+                        st.session_state[f"show_comp_{idx}"] = not st.session_state[f"show_comp_{idx}"]
 
                 if st.session_state.get(f"show_comp_{idx}", False):
                     st.markdown(f"**Composição da Carteira - {row['Código']}:**")
