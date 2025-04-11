@@ -11,7 +11,8 @@ def extrair_dados(nome_arquivo, texto):
         "Código": "",
         "Rent. Mês": "",
         "Rent. Ano": "",
-        "%CDI Ano": ""
+        "%CDI Ano": "",
+        "Composicao": ""
     }
 
     match = re.search(r"XPerformance\s*-\s*(\d+)", nome_arquivo)
@@ -19,8 +20,16 @@ def extrair_dados(nome_arquivo, texto):
         dados["Código"] = match.group(1)
 
     linhas = texto.splitlines()
+    comp_inicio = False
+    composicao_linhas = []
+    patrimonio = 0.0
 
     for linha in linhas:
+        if "PATRIMÔNIO TOTAL BRUTO" in linha.upper():
+            match_patr = re.search(r"R\$\s*([\d\.]+,\d{2})", linha)
+            if match_patr:
+                patrimonio = float(match_patr.group(1).replace(".", "").replace(",", "."))
+
         if "Portf" in linha:
             percentuais = re.findall(r"\d+,\d+%", linha)
             if len(percentuais) >= 2:
@@ -32,6 +41,33 @@ def extrair_dados(nome_arquivo, texto):
             if len(percentuais) >= 2:
                 dados["%CDI Ano"] = percentuais[1]
 
+        if "COMPOSIÇÃO" in linha.upper():
+            comp_inicio = True
+            continue
+        if comp_inicio:
+            if "RENTABILIDADE" in linha.upper():
+                comp_inicio = False
+            else:
+                composicao_linhas.append(linha.strip())
+
+    # Processar composição em tabela
+    composicao_detalhada = []
+    for linha in composicao_linhas:
+        partes = re.split(r"\s{2,}", linha)
+        if len(partes) >= 5:
+            estrategia = re.sub(r"\s*\(.*\)", "", partes[0]).strip()
+            saldo = partes[1].replace("R$", "").replace(".", "").replace(",", ".")
+            mes = partes[2]
+            ano = partes[3]
+            try:
+                saldo_float = float(saldo)
+                pct = f"{(saldo_float / patrimonio) * 100:.2f}%" if patrimonio > 0 else "-"
+                composicao_detalhada.append([estrategia, pct, partes[1], mes, ano])
+            except:
+                pass
+
+    tabela = pd.DataFrame(composicao_detalhada, columns=["Estratégia", "Composição", "Saldo Bruto", "Mês Atual", "Ano"])
+    dados["Composicao"] = tabela.to_csv(index=False)
     return dados
 
 def gerar_excel(df):
@@ -61,25 +97,35 @@ if uploaded_files:
     if resultados:
         df = pd.DataFrame(resultados)
 
-        # Converter colunas percentuais para float para ordenação e filtro
         df["Rent. Mês Num"] = df["Rent. Mês"].str.replace("%", "").str.replace(",", ".").astype(float)
         df["%CDI Num"] = df["%CDI Ano"].str.replace("%", "").str.replace(",", ".").astype(float)
 
-        # Filtro por %CDI
         opcao_filtro = st.selectbox("Filtrar por %CDI Ano:", ["Todos", "Acima de 100%", "Abaixo de 100%"])
         if opcao_filtro == "Acima de 100%":
             df = df[df["%CDI Num"] > 100]
         elif opcao_filtro == "Abaixo de 100%":
             df = df[df["%CDI Num"] <= 100]
 
-        # Ordenar por Rent. Mês
         df = df.sort_values(by="Rent. Mês Num", ascending=False)
 
-        # Ocultar colunas numéricas internas
         df_exibido = df.drop(columns=["Rent. Mês Num", "%CDI Num"])
 
         with st.expander("📄 Visualizar Tabela"):
-            st.dataframe(df_exibido, use_container_width=True)
+            for idx, row in df_exibido.iterrows():
+                with st.container():
+                    cols = st.columns([2, 2, 2, 2, 2, 1])
+                    cols[0].markdown(row["Arquivo"])
+                    cols[1].markdown(row["Código"])
+                    cols[2].markdown(row["Rent. Mês"])
+                    cols[3].markdown(row["Rent. Ano"])
+                    cols[4].markdown(row["%CDI Ano"])
+                    with cols[5]:
+                        if st.button("ℹ️", key=f"info_{idx}"):
+                            st.session_state[f"show_comp_{idx}"] = not st.session_state.get(f"show_comp_{idx}", False)
+
+                    if st.session_state.get(f"show_comp_{idx}", False):
+                        st.markdown(f"**Composição da Carteira - {row['Código']}:**")
+                        st.dataframe(pd.read_csv(io.StringIO(row["Composicao"])), use_container_width=True)
 
         excel_data = gerar_excel(df_exibido)
         st.download_button("📥 Baixar Excel com Resultados", data=excel_data,
