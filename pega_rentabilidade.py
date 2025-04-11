@@ -114,6 +114,11 @@ if uploaded_files:
         df_exibido = df.drop(columns=["Rent. Mês Num", "%CDI Num"])
 
         st.markdown("### 📄 Visualizar Tabela")
+
+        header = ["Arquivo", "Código", "Rent. Mês", "Rent. Ano", "%CDI Ano", "Mais Info"]
+        st.write("| " + " | ".join(header) + " |")
+        st.write("|" + "---|" * len(header))
+
         for idx, row in df_exibido.iterrows():
             with st.container():
                 cols = st.columns([2, 2, 2, 2, 2, 1])
