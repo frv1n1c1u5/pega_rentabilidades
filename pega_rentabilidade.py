@@ -116,26 +116,13 @@ if uploaded_files:
         st.markdown("### 📄 Visualizar Tabela")
 
         for idx, row in df_exibido.iterrows():
-            if f"show_comp_{idx}" not in st.session_state:
-                st.session_state[f"show_comp_{idx}"] = False
-
             with st.container():
-                cols = st.columns([2, 2, 2, 2, 2, 1])
+                cols = st.columns([2, 2, 2, 2, 2])
                 cols[0].markdown(f"**{row['Arquivo']}**")
                 cols[1].markdown(row["Código"])
                 cols[2].markdown(row["Rent. Mês"])
                 cols[3].markdown(row["Rent. Ano"])
                 cols[4].markdown(row["%CDI Ano"])
-                with cols[5]:
-                    if st.button("ℹ️", key=f"info_{idx}"):
-                        st.session_state[f"show_comp_{idx}"] = not st.session_state[f"show_comp_{idx}"]
-
-                if st.session_state.get(f"show_comp_{idx}", False):
-                    st.markdown(f"**Composição da Carteira - {row['Código']}:**")
-                    if row["Composicao"]:
-                        st.dataframe(pd.read_csv(io.StringIO(row["Composicao"])), use_container_width=True)
-                    else:
-                        st.info("Nenhuma informação de composição encontrada no PDF.")
 
         excel_data = gerar_excel(df_exibido)
         st.download_button("📥 Baixar Excel com Resultados", data=excel_data,
