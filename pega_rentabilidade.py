@@ -50,7 +50,6 @@ def extrair_dados(nome_arquivo, texto):
             else:
                 composicao_linhas.append(linha.strip())
 
-    # Processar composição em tabela
     composicao_detalhada = []
     for linha in composicao_linhas:
         partes = re.split(r"\s{2,}", linha)
@@ -66,8 +65,12 @@ def extrair_dados(nome_arquivo, texto):
             except:
                 pass
 
-    tabela = pd.DataFrame(composicao_detalhada, columns=["Estratégia", "Composição", "Saldo Bruto", "Mês Atual", "Ano"])
-    dados["Composicao"] = tabela.to_csv(index=False)
+    if composicao_detalhada:
+        tabela = pd.DataFrame(composicao_detalhada, columns=["Estratégia", "Composição", "Saldo Bruto", "Mês Atual", "Ano"])
+        dados["Composicao"] = tabela.to_csv(index=False)
+    else:
+        dados["Composicao"] = ""
+
     return dados
 
 def gerar_excel(df):
@@ -110,22 +113,25 @@ if uploaded_files:
 
         df_exibido = df.drop(columns=["Rent. Mês Num", "%CDI Num"])
 
-        with st.expander("📄 Visualizar Tabela"):
-            for idx, row in df_exibido.iterrows():
-                with st.container():
-                    cols = st.columns([2, 2, 2, 2, 2, 1])
-                    cols[0].markdown(row["Arquivo"])
-                    cols[1].markdown(row["Código"])
-                    cols[2].markdown(row["Rent. Mês"])
-                    cols[3].markdown(row["Rent. Ano"])
-                    cols[4].markdown(row["%CDI Ano"])
-                    with cols[5]:
-                        if st.button("ℹ️", key=f"info_{idx}"):
-                            st.session_state[f"show_comp_{idx}"] = not st.session_state.get(f"show_comp_{idx}", False)
+        st.markdown("### 📄 Visualizar Tabela")
+        for idx, row in df_exibido.iterrows():
+            with st.container():
+                cols = st.columns([2, 2, 2, 2, 2, 1])
+                cols[0].markdown(row["Arquivo"])
+                cols[1].markdown(row["Código"])
+                cols[2].markdown(row["Rent. Mês"])
+                cols[3].markdown(row["Rent. Ano"])
+                cols[4].markdown(row["%CDI Ano"])
+                with cols[5]:
+                    if st.button("ℹ️", key=f"info_{idx}"):
+                        st.session_state[f"show_comp_{idx}"] = not st.session_state.get(f"show_comp_{idx}", False)
 
-                    if st.session_state.get(f"show_comp_{idx}", False):
-                        st.markdown(f"**Composição da Carteira - {row['Código']}:**")
+                if st.session_state.get(f"show_comp_{idx}", False):
+                    st.markdown(f"**Composição da Carteira - {row['Código']}:**")
+                    if row["Composicao"]:
                         st.dataframe(pd.read_csv(io.StringIO(row["Composicao"])), use_container_width=True)
+                    else:
+                        st.info("Nenhuma informação de composição encontrada no PDF.")
 
         excel_data = gerar_excel(df_exibido)
         st.download_button("📥 Baixar Excel com Resultados", data=excel_data,
