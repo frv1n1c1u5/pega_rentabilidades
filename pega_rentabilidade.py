@@ -4,7 +4,6 @@ import re
 import io
 from PyPDF2 import PdfReader
 from openpyxl import Workbook
-from tempfile import NamedTemporaryFile
 
 def extrair_dados(nome_arquivo, texto):
     dados = {
@@ -15,7 +14,6 @@ def extrair_dados(nome_arquivo, texto):
         "%CDI Ano": ""
     }
 
-    # Código do cliente no nome do arquivo
     match = re.search(r"XPerformance\s*-\s*(\d+)", nome_arquivo)
     if match:
         dados["Código"] = match.group(1)
@@ -63,10 +61,27 @@ if uploaded_files:
     if resultados:
         df = pd.DataFrame(resultados)
 
-        with st.expander("📄 Visualizar Tabela"):
-            st.dataframe(df, use_container_width=True)
+        # Converter colunas percentuais para float para ordenação e filtro
+        df["Rent. Mês Num"] = df["Rent. Mês"].str.replace("%", "").str.replace(",", ".").astype(float)
+        df["%CDI Num"] = df["%CDI Ano"].str.replace("%", "").str.replace(",", ".").astype(float)
 
-        excel_data = gerar_excel(df)
+        # Filtro por %CDI
+        opcao_filtro = st.selectbox("Filtrar por %CDI Ano:", ["Todos", "Acima de 100%", "Abaixo de 100%"])
+        if opcao_filtro == "Acima de 100%":
+            df = df[df["%CDI Num"] > 100]
+        elif opcao_filtro == "Abaixo de 100%":
+            df = df[df["%CDI Num"] <= 100]
+
+        # Ordenar por Rent. Mês
+        df = df.sort_values(by="Rent. Mês Num", ascending=False)
+
+        # Ocultar colunas numéricas internas
+        df_exibido = df.drop(columns=["Rent. Mês Num", "%CDI Num"])
+
+        with st.expander("📄 Visualizar Tabela"):
+            st.dataframe(df_exibido, use_container_width=True)
+
+        excel_data = gerar_excel(df_exibido)
         st.download_button("📥 Baixar Excel com Resultados", data=excel_data,
                            file_name="rentabilidades.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     else:
